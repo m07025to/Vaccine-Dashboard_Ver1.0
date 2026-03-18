@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>予防接種 情報収集ダッシュボード</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f5f4f0;
+  --surface: #ffffff;
+  --surface2: #f0efe9;
+  --border: #e2e0d8;
+  --text: #1a1917;
+  --text2: #6b6860;
+  --text3: #9b9890;
+  --accent: #1a5c3a;
+  --accent-light: #e8f5ee;
+  --accent-border: #b8dfc8;
+  --sans: 'Noto Sans JP', sans-serif;
+  --mono: 'DM Mono', monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--sans); background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.6; }
+
+/* Header */
+.header {
+  background: var(--text); color: #fff;
+  padding: 0 2rem; height: 56px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 100;
+}
+.logo { font-family: var(--mono); font-size: 13px; letter-spacing: 0.08em; }
+.logo span { color: #5ecb8a; }
+.header-right { display: flex; align-items: center; gap: 12px; }
+.header-tag { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.6); font-family: var(--mono); }
+.last-upd { font-size: 11px; color: rgba(255,255,255,0.4); font-family: var(--mono); }
+
+/* Layout */
+.layout { display: flex; min-height: calc(100vh - 56px); }
+
+/* Sidebar */
+.sidebar {
+  width: 220px; flex-shrink: 0;
+  background: var(--surface); border-right: 1px solid var(--border);
+  padding: 1.5rem 0;
+  position: sticky; top: 56px; height: calc(100vh - 56px); overflow-y: auto;
+}
+.sb-label { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: var(--text3); padding: 0 1.25rem; margin-bottom: 6px; text-transform: uppercase; }
+.sb-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 1.25rem; cursor: pointer;
+  border-left: 2px solid transparent;
+  color: var(--text2); font-size: 13px; transition: all 0.15s;
+}
+.sb-item:hover { background: var(--surface2); color: var(--text); }
+.sb-item.active { border-left-color: var(--accent); background: var(--accent-light); color: var(--accent); font-weight: 500; }
+.sb-count { font-size: 11px; font-family: var(--mono); background: var(--surface2); padding: 1px 7px; border-radius: 10px; color: var(--text3); }
+.sb-item.active .sb-count { background: var(--accent); color: #fff; }
+.sb-divider { height: 1px; background: var(--border); margin: 0.75rem 1.25rem; }
+
+/* Main */
+.main { flex: 1; padding: 1.5rem 2rem; min-width: 0; }
+
+/* Stats */
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; margin-bottom: 1.5rem; }
+.stat { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.25rem; }
+.stat-label { font-size: 11px; color: var(--text3); margin-bottom: 4px; }
+.stat-num { font-size: 26px; font-weight: 700; font-family: var(--mono); }
+.stat-sub { font-size: 11px; color: var(--accent); margin-top: 2px; }
+
+/* Toolbar */
+.toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 1rem; flex-wrap: wrap; }
+.search-wrap { position: relative; flex: 1; min-width: 180px; }
+.search-wrap input {
+  width: 100%; padding: 8px 12px 8px 32px;
+  border: 1px solid var(--border); border-radius: 6px;
+  background: var(--surface); color: var(--text); font-size: 13px; font-family: var(--sans);
+}
+.search-wrap input:focus { outline: none; border-color: var(--accent); }
+.search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text3); pointer-events: none; }
+.type-filters { display: flex; gap: 6px; flex-wrap: wrap; }
+.type-btn {
+  font-size: 11px; padding: 5px 12px; border-radius: 20px;
+  border: 1px solid var(--border); background: var(--surface); color: var(--text2);
+  cursor: pointer; transition: all 0.15s;
+}
+.type-btn:hover { border-color: var(--accent); color: var(--accent); }
+.type-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn {
+  font-size: 12px; font-family: var(--sans); padding: 7px 14px;
+  border-radius: 6px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--text); cursor: pointer; transition: all 0.15s; white-space: nowrap;
+}
+.btn:hover { background: var(--surface2); }
+.btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn-primary:hover { background: #144d30; }
+.btn-danger { color: #8a1a1a; border-color: #f0c0c0; }
+.btn-danger:hover { background: #fdf0f0; }
+
+/* Items */
+.items { display: flex; flex-direction: column; gap: 10px; }
+.item {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+  padding: 1rem 1.25rem; transition: border-color 0.15s;
+  animation: fadeIn 0.25s ease;
+}
+@keyframes fadeIn { from { opacity:0; transform:translateY(3px); } to { opacity:1; transform:none; } }
+.item:hover { border-color: #c8c6be; }
+.item-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+.item-title { font-size: 14px; font-weight: 500; line-height: 1.4; }
+.item-title a { color: inherit; text-decoration: none; }
+.item-title a:hover { color: var(--accent); text-decoration: underline; }
+.badges { display: flex; gap: 5px; flex-shrink: 0; flex-wrap: wrap; align-items: flex-start; }
+.badge { font-size: 10px; padding: 2px 7px; border-radius: 4px; font-family: var(--mono); white-space: nowrap; font-weight: 500; }
+.badge-mhlw   { background:#e8edf8; color:#2d4a8a; }
+.badge-who    { background:#e8f5ee; color:#1a5c3a; }
+.badge-cdc    { background:#fef3e8; color:#8a5a1a; }
+.badge-pubmed { background:#f0e8f8; color:#5a1a8a; }
+.badge-gakkai { background:#f8e8e8; color:#8a1a2a; }
+.badge-type-議事録     { background:#f0efe9; color:#5a5850; }
+.badge-type-ガイドライン{ background:#e8f5ee; color:#1a5c3a; }
+.badge-type-論文       { background:#f0e8f8; color:#5a1a8a; }
+.badge-type-副反応     { background:#f8e8e8; color:#8a1a1a; }
+.item-body { font-size: 13px; color: var(--text2); line-height: 1.6; }
+.item-meta { display: flex; gap: 12px; margin-top: 8px; font-size: 11px; color: var(--text3); font-family: var(--mono); flex-wrap: wrap; align-items: center; }
+.item-actions { display: flex; gap: 6px; margin-top: 8px; }
+.item-edit-btn { font-size: 11px; padding: 3px 10px; border-radius: 4px; border: 1px solid var(--border); background: var(--surface2); color: var(--text2); cursor: pointer; }
+.item-edit-btn:hover { background: var(--border); }
+.item-del-btn { font-size: 11px; padding: 3px 10px; border-radius: 4px; border: 1px solid #f0c0c0; background: #fdf8f8; color: #8a1a1a; cursor: pointer; }
+.item-del-btn:hover { background: #fdf0f0; }
+.new-badge { display:inline-block; font-size:9px; font-weight:700; padding:1px 5px; border-radius:3px; background:var(--accent); color:#fff; margin-right:6px; vertical-align:middle; font-family:var(--mono); }
+
+/* Empty state */
+.empty-state { text-align: center; padding: 3rem; color: var(--text3); font-size: 13px; line-height: 1.8; }
+.empty-icon { font-size: 32px; margin-bottom: 12px; }
+
+/* Modal */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.4); z-index: 200;
+  align-items: center; justify-content: center; padding: 1rem;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--surface); border-radius: 10px;
+  width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto;
+  padding: 1.5rem; box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+}
+.modal-title { font-size: 15px; font-weight: 500; margin-bottom: 1.25rem; }
+.form-row { margin-bottom: 14px; }
+.form-label { font-size: 11px; color: var(--text2); margin-bottom: 5px; display: block; font-weight: 500; }
+.form-input, .form-select, .form-textarea {
+  width: 100%; padding: 8px 10px;
+  border: 1px solid var(--border); border-radius: 6px;
+  background: var(--bg); color: var(--text);
+  font-size: 13px; font-family: var(--sans);
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: var(--accent); }
+.form-textarea { min-height: 80px; resize: vertical; }
+.form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 1.25rem; }
+
+/* Import/Export */
+.io-panel {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+  padding: 1rem 1.25rem; margin-bottom: 1.25rem;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.io-label { font-size: 12px; color: var(--text2); font-weight: 500; margin-right: 4px; }
+
+/* Pagination */
+.pagination { display: flex; align-items: center; justify-content: space-between; margin-top: 1.25rem; font-size: 12px; color: var(--text3); font-family: var(--mono); }
+.page-btns { display: flex; gap: 6px; }
+.page-btns button { font-size: 12px; font-family: var(--mono); padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text2); cursor: pointer; }
+.page-btns button:disabled { opacity: 0.4; cursor: default; }
+
+/* How-to banner */
+.howto {
+  background: var(--accent-light); border: 1px solid var(--accent-border);
+  border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1.25rem;
+  font-size: 12px; color: var(--text2); line-height: 1.8;
+}
+.howto strong { color: var(--accent); }
+.howto-close { float: right; cursor: pointer; color: var(--text3); font-size: 16px; line-height: 1; }
+
+@media (max-width: 768px) {
+  .layout { flex-direction: column; }
+  .sidebar { width: 100%; height: auto; position: static; }
+  .stats { grid-template-columns: repeat(2,1fr); }
+  .main { padding: 1rem; }
+  .form-row-2 { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div style="display:flex;align-items:center;gap:14px">
+    <div class="logo">VACCINE<span>HUB</span></div>
+    <span class="header-tag">予防接種 情報収集ダッシュボード</span>
+  </div>
+  <div class="header-right">
+    <span class="last-upd" id="last-upd">—</span>
+    <button class="btn btn-primary" onclick="openModal()">＋ 情報を追加</button>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div style="margin-bottom:1.5rem">
+      <div class="sb-label">情報ソース</div>
+      <div class="sb-item active" onclick="setSource('all',this)" data-s="all">すべて <span class="sb-count" id="cnt-all">0</span></div>
+      <div class="sb-item" onclick="setSource('厚労省',this)" data-s="厚労省">厚生労働省 <span class="sb-count" id="cnt-mhlw">0</span></div>
+      <div class="sb-item" onclick="setSource('WHO',this)" data-s="WHO">WHO <span class="sb-count" id="cnt-who">0</span></div>
+      <div class="sb-item" onclick="setSource('CDC',this)" data-s="CDC">CDC <span class="sb-count" id="cnt-cdc">0</span></div>
+      <div class="sb-item" onclick="setSource('PubMed',this)" data-s="PubMed">PubMed <span class="sb-count" id="cnt-pubmed">0</span></div>
+      <div class="sb-item" onclick="setSource('学会',this)" data-s="学会">国内学会 <span class="sb-count" id="cnt-gakkai">0</span></div>
+    </div>
+    <div class="sb-divider"></div>
+    <div>
+      <div class="sb-label">情報種別</div>
+      <div class="sb-item" onclick="setTypeS('all',this)" data-t="all">すべての種別</div>
+      <div class="sb-item" onclick="setTypeS('議事録',this)" data-t="議事録">審議会・議事録</div>
+      <div class="sb-item" onclick="setTypeS('ガイドライン',this)" data-t="ガイドライン">ガイドライン・通知</div>
+      <div class="sb-item" onclick="setTypeS('論文',this)" data-t="論文">研究論文</div>
+      <div class="sb-item" onclick="setTypeS('副反応',this)" data-t="副反応">副反応・安全性</div>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <!-- How-to -->
+    <div class="howto" id="howto">
+      <span class="howto-close" onclick="document.getElementById('howto').style.display='none'">×</span>
+      <strong>使い方：</strong>
+      ① Claude.aiで「予防接種の最新情報を調べて」と質問 →
+      ② 結果から重要な情報を「＋ 情報を追加」ボタンで登録 →
+      ③ ダッシュボードに蓄積・フィルタリングして部署内で共有
+      <br>登録データはブラウザに自動保存されます。CSVで出力・読み込みも可能です。
+    </div>
+
+    <!-- Stats -->
+    <div class="stats">
+      <div class="stat"><div class="stat-label">収集件数（合計）</div><div class="stat-num" id="s-total">0</div><div class="stat-sub" id="s-sub">まだ登録がありません</div></div>
+      <div class="stat"><div class="stat-label">審議会・議事録</div><div class="stat-num" id="s-giji">0</div><div class="stat-sub">件</div></div>
+      <div class="stat"><div class="stat-label">論文・エビデンス</div><div class="stat-num" id="s-paper">0</div><div class="stat-sub">件</div></div>
+      <div class="stat"><div class="stat-label">副反応・安全性</div><div class="stat-num" id="s-ae">0</div><div class="stat-sub">件</div></div>
+    </div>
+
+    <!-- IO panel -->
+    <div class="io-panel">
+      <span class="io-label">データ管理：</span>
+      <button class="btn" onclick="exportCSV()">CSVで出力</button>
+      <label class="btn" style="cursor:pointer">CSVを読み込む<input type="file" accept=".csv" style="display:none" onchange="importCSV(event)"></label>
+      <button class="btn" onclick="exportJSON()">JSONで保存</button>
+      <label class="btn" style="cursor:pointer">JSONを読み込む<input type="file" accept=".json" style="display:none" onchange="importJSON(event)"></label>
+      <button class="btn btn-danger" onclick="clearAll()">全件削除</button>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="search" placeholder="キーワード検索..." oninput="render()">
+      </div>
+      <div class="type-filters">
+        <button class="type-btn active" onclick="setType('all',this)">すべて</button>
+        <button class="type-btn" onclick="setType('議事録',this)">議事録</button>
+        <button class="type-btn" onclick="setType('ガイドライン',this)">ガイドライン</button>
+        <button class="type-btn" onclick="setType('論文',this)">論文</button>
+        <button class="type-btn" onclick="setType('副反応',this)">副反応</button>
+      </div>
+    </div>
+
+    <!-- List -->
+    <div class="items" id="item-list"></div>
+    <div class="empty-state" id="empty-state">
+      <div class="empty-icon">📋</div>
+      <p>まだ情報が登録されていません。<br>「＋ 情報を追加」ボタンから登録してください。<br><br>Claude.aiで調べた最新情報をここに蓄積できます。</p>
+    </div>
+    <div class="pagination" id="pagination" style="display:none">
+      <span id="page-info"></span>
+      <div class="page-btns">
+        <button id="prev-btn" onclick="changePage(-1)" disabled>← 前へ</button>
+        <button id="next-btn" onclick="changePage(1)">次へ →</button>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">情報を追加</div>
+    <div class="form-row">
+      <label class="form-label">タイトル *</label>
+      <input class="form-input" id="f-title" placeholder="例：第58回予防接種・ワクチン分科会 議事録">
+    </div>
+    <div class="form-row-2">
+      <div class="form-row" style="margin-bottom:0">
+        <label class="form-label">情報ソース *</label>
+        <select class="form-select" id="f-source">
+          <option value="厚労省">厚生労働省</option>
+          <option value="WHO">WHO</option>
+          <option value="CDC">CDC</option>
+          <option value="PubMed">PubMed</option>
+          <option value="学会">国内学会</option>
+        </select>
+      </div>
+      <div class="form-row" style="margin-bottom:0">
+        <label class="form-label">種別 *</label>
+        <select class="form-select" id="f-type">
+          <option value="議事録">審議会・議事録</option>
+          <option value="ガイドライン">ガイドライン・通知</option>
+          <option value="論文">研究論文</option>
+          <option value="副反応">副反応・安全性</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <label class="form-label">日付</label>
+      <input class="form-input" id="f-date" type="date">
+    </div>
+    <div class="form-row">
+      <label class="form-label">要旨・メモ</label>
+      <textarea class="form-textarea" id="f-summary" placeholder="内容の要点をメモしてください"></textarea>
+    </div>
+    <div class="form-row">
+      <label class="form-label">URL（任意）</label>
+      <input class="form-input" id="f-url" type="url" placeholder="https://...">
+    </div>
+    <div class="form-row">
+      <label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer">
+        <input type="checkbox" id="f-new" style="accent-color:var(--accent)"> 新着としてマーク
+      </label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveItem()">保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'vaccineHub_items';
+const PER_PAGE = 10;
+let items = [];
+let curSource = 'all', curType = 'all', curPage = 1;
+let editId = null;
+
+// Load from localStorage
+function load() {
+  try { items = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch(e) { items = []; }
+  updateAll();
+}
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+  document.getElementById('last-upd').textContent = '保存: ' + new Date().toLocaleString('ja-JP');
+}
+
+// Modal
+function openModal(id) {
+  editId = id || null;
+  document.getElementById('modal-title').textContent = id ? '情報を編集' : '情報を追加';
+  if (id) {
+    const item = items.find(i => i.id === id);
+    if (!item) return;
+    document.getElementById('f-title').value = item.title || '';
+    document.getElementById('f-source').value = item.source || '厚労省';
+    document.getElementById('f-type').value = item.type || '議事録';
+    document.getElementById('f-date').value = item.date || '';
+    document.getElementById('f-summary').value = item.summary || '';
+    document.getElementById('f-url').value = item.url || '';
+    document.getElementById('f-new').checked = !!item.isNew;
+  } else {
+    document.getElementById('f-title').value = '';
+    document.getElementById('f-source').value = '厚労省';
+    document.getElementById('f-type').value = '議事録';
+    document.getElementById('f-date').value = new Date().toISOString().slice(0,10);
+    document.getElementById('f-summary').value = '';
+    document.getElementById('f-url').value = '';
+    document.getElementById('f-new').checked = true;
+  }
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+document.getElementById('modal').addEventListener('click', e => { if(e.target===e.currentTarget) closeModal(); });
+
+function saveItem() {
+  const title = document.getElementById('f-title').value.trim();
+  if (!title) { alert('タイトルを入力してください。'); return; }
+  const item = {
+    id: editId || Date.now(),
+    title,
+    source: document.getElementById('f-source').value,
+    type: document.getElementById('f-type').value,
+    date: document.getElementById('f-date').value,
+    summary: document.getElementById('f-summary').value.trim(),
+    url: document.getElementById('f-url').value.trim(),
+    isNew: document.getElementById('f-new').checked,
+  };
+  if (editId) {
+    const idx = items.findIndex(i => i.id === editId);
+    if (idx >= 0) items[idx] = item;
+  } else {
+    items.unshift(item);
+  }
+  save(); updateAll(); closeModal();
+}
+
+function deleteItem(id) {
+  if (!confirm('この情報を削除しますか？')) return;
+  items = items.filter(i => i.id !== id);
+  save(); updateAll();
+}
+
+function clearAll() {
+  if (!confirm('すべての情報を削除しますか？')) return;
+  items = []; save(); updateAll();
+}
+
+// Filter & Render
+function filtered() {
+  const q = (document.getElementById('search').value || '').toLowerCase();
+  return items.filter(d => {
+    if (curSource !== 'all' && d.source !== curSource) return false;
+    if (curType !== 'all' && d.type !== curType) return false;
+    if (q && !d.title.toLowerCase().includes(q) && !(d.summary||'').toLowerCase().includes(q)) return false;
+    return true;
+  });
+}
+
+const sourceClass = { '厚労省':'mhlw','WHO':'who','CDC':'cdc','PubMed':'pubmed','学会':'gakkai' };
+
+function render() {
+  const list = filtered();
+  const start = (curPage-1)*PER_PAGE;
+  const page = list.slice(start, start+PER_PAGE);
+  const el = document.getElementById('item-list');
+  const empty = document.getElementById('empty-state');
+  const pag = document.getElementById('pagination');
+
+  if (items.length === 0) {
+    el.innerHTML = ''; empty.style.display = 'block'; pag.style.display = 'none'; return;
+  }
+  empty.style.display = 'none';
+  if (list.length === 0) {
+    el.innerHTML = '<div class="empty-state"><p>該当する情報がありません。</p></div>';
+    pag.style.display = 'none'; return;
+  }
+
+  el.innerHTML = page.map(d => `
+    <div class="item">
+      <div class="item-top">
+        <div class="item-title">
+          ${d.isNew ? '<span class="new-badge">NEW</span>' : ''}
+          ${d.url ? `<a href="${d.url}" target="_blank" rel="noopener">${d.title}</a>` : d.title}
+        </div>
+        <div class="badges">
+          <span class="badge badge-${sourceClass[d.source]||'mhlw'}">${d.source}</span>
+          <span class="badge badge-type-${d.type}">${d.type}</span>
+        </div>
+      </div>
+      ${d.summary ? `<div class="item-body">${d.summary}</div>` : ''}
+      <div class="item-meta">
+        ${d.date ? `<span>${d.date}</span>` : ''}
+        ${d.url ? `<span style="color:#1a5c3a">${d.url.replace(/^https?:\/\//,'').split('/')[0]}</span>` : ''}
+      </div>
+      <div class="item-actions">
+        <button class="item-edit-btn" onclick="openModal(${d.id})">編集</button>
+        <button class="item-del-btn" onclick="deleteItem(${d.id})">削除</button>
+      </div>
+    </div>
+  `).join('');
+
+  const totalPages = Math.ceil(list.length/PER_PAGE);
+  pag.style.display = list.length > PER_PAGE ? 'flex' : 'none';
+  document.getElementById('page-info').textContent = `${start+1}–${Math.min(start+PER_PAGE,list.length)} / 全${list.length}件`;
+  document.getElementById('prev-btn').disabled = curPage <= 1;
+  document.getElementById('next-btn').disabled = curPage >= totalPages;
+}
+
+function updateStats() {
+  document.getElementById('s-total').textContent = items.length;
+  document.getElementById('s-sub').textContent = items.length > 0 ? '件登録済み' : 'まだ登録がありません';
+  document.getElementById('s-giji').textContent = items.filter(i=>i.type==='議事録').length;
+  document.getElementById('s-paper').textContent = items.filter(i=>i.type==='論文').length;
+  document.getElementById('s-ae').textContent = items.filter(i=>i.type==='副反応').length;
+}
+
+function updateCounts() {
+  document.getElementById('cnt-all').textContent = items.length;
+  document.getElementById('cnt-mhlw').textContent = items.filter(i=>i.source==='厚労省').length;
+  document.getElementById('cnt-who').textContent = items.filter(i=>i.source==='WHO').length;
+  document.getElementById('cnt-cdc').textContent = items.filter(i=>i.source==='CDC').length;
+  document.getElementById('cnt-pubmed').textContent = items.filter(i=>i.source==='PubMed').length;
+  document.getElementById('cnt-gakkai').textContent = items.filter(i=>i.source==='学会').length;
+}
+
+function updateAll() { updateStats(); updateCounts(); render(); }
+
+function setSource(s, el) {
+  curSource=s; curPage=1;
+  document.querySelectorAll('[data-s]').forEach(e=>e.classList.remove('active'));
+  el.classList.add('active'); render();
+}
+function setTypeS(t, el) {
+  curType=t; curPage=1;
+  document.querySelectorAll('[data-t]').forEach(e=>e.classList.remove('active'));
+  el.classList.add('active'); render();
+}
+function setType(t, el) {
+  curType=t; curPage=1;
+  document.querySelectorAll('.type-btn').forEach(e=>e.classList.remove('active'));
+  el.classList.add('active'); render();
+}
+function changePage(d) { curPage+=d; render(); }
+
+// Export CSV
+function exportCSV() {
+  if (items.length === 0) { alert('登録データがありません。'); return; }
+  const header = ['タイトル','ソース','種別','日付','要旨','URL','新着'];
+  const rows = items.map(i => [i.title,i.source,i.type,i.date||'',i.summary||'',i.url||'',i.isNew?'○':''].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(','));
+  const bom = '\uFEFF';
+  const csv = bom + [header.join(','), ...rows].join('\n');
+  download(csv, 'vaccine_dashboard_' + today() + '.csv', 'text/csv');
+}
+
+// Import CSV
+function importCSV(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const text = ev.target.result.replace(/^\uFEFF/,'');
+      const lines = text.trim().split('\n').slice(1);
+      const newItems = lines.map((line, idx) => {
+        const cols = line.match(/("(?:[^"]|"")*"|[^,]*)/g).filter((_,i)=>i%2===0).map(v=>v.replace(/^"|"$/g,'').replace(/""/g,'"'));
+        return { id: Date.now()+idx, title:cols[0]||'', source:cols[1]||'厚労省', type:cols[2]||'議事録', date:cols[3]||'', summary:cols[4]||'', url:cols[5]||'', isNew:cols[6]==='○' };
+      }).filter(i=>i.title);
+      items = [...newItems, ...items];
+      save(); updateAll();
+      alert(newItems.length + '件をインポートしました。');
+    } catch(err) { alert('CSVの読み込みに失敗しました。'); }
+    e.target.value = '';
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+// Export JSON
+function exportJSON() {
+  if (items.length === 0) { alert('登録データがありません。'); return; }
+  download(JSON.stringify(items, null, 2), 'vaccine_dashboard_' + today() + '.json', 'application/json');
+}
+
+// Import JSON
+function importJSON(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (!Array.isArray(data)) throw new Error();
+      items = [...data, ...items];
+      save(); updateAll();
+      alert(data.length + '件をインポートしました。');
+    } catch(err) { alert('JSONの読み込みに失敗しました。'); }
+    e.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+function download(content, filename, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], {type}));
+  a.download = filename; a.click();
+}
+function today() { return new Date().toISOString().slice(0,10).replace(/-/g,''); }
+
+load();
+</script>
+</body>
+</html>
